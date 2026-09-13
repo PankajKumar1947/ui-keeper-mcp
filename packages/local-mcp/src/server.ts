@@ -3,7 +3,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { analyzeProject, auditProject, colorDistance } from "@ui-keeper/core";
+import { analyzeProject, auditProject, fixProject, colorDistance } from "@ui-keeper/core";
 
 export function createServer() {
   const server = new Server(
@@ -115,6 +115,24 @@ export function createServer() {
             },
           },
         },
+        {
+          name: "apply_ui_fix",
+          description:
+            "Apply high-confidence automated fixes to UI issues and verify them using the verification loop.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              rootDir: {
+                type: "string",
+                description: "Project root directory.",
+              },
+              targetPath: {
+                type: "string",
+                description: "Optional file or directory to fix.",
+              },
+            },
+          },
+        },
       ],
     };
   });
@@ -159,6 +177,21 @@ export function createServer() {
             {
               type: "text",
               text: JSON.stringify(report, null, 2),
+            },
+          ],
+        };
+      }
+
+      if (name === "apply_ui_fix") {
+        const result = fixProject({
+          rootDir,
+          targetPath: args.targetPath as string | undefined,
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
             },
           ],
         };

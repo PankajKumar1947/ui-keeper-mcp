@@ -2,7 +2,7 @@
 import { Command } from "commander";
 import * as path from "node:path";
 import pc from "picocolors";
-import { analyzeProject, auditProject } from "@ui-keeper/core";
+import { analyzeProject, auditProject, fixProject, checkPage } from "@ui-keeper/core";
 
 const program = new Command();
 
@@ -114,6 +114,42 @@ program
     if (report.errorsCount > 0) {
       process.exitCode = 1;
     }
+  });
+
+// Command: fix
+program
+  .command("fix [path]")
+  .description("Apply high-confidence fixes and verify them with the verification loop")
+  .option("-t, --target <path>", "Specific file or directory to fix")
+  .action((targetPath = ".", options) => {
+    const rootDir = path.resolve(targetPath);
+    console.log(pc.cyan(`\n🛠️  Applying high-confidence fixes in: ${rootDir}...\n`));
+
+    const result = fixProject({
+      rootDir,
+      targetPath: options.target,
+    });
+
+    if (result.totalFixed === 0) {
+      console.log(pc.yellow("No auto-fixable issues found.\n"));
+      return;
+    }
+
+    for (const file of result.fixedFiles) {
+      console.log(pc.green(`✔ Fixed ${file.filePath}:`));
+      for (const fix of file.fixes) {
+        console.log(`  • ${fix}`);
+      }
+    }
+
+    if (result.revertedFiles.length > 0) {
+      for (const file of result.revertedFiles) {
+        console.log(pc.red(`✖ Reverted ${file} (fix failed verification)`));
+      }
+    }
+
+    console.log(pc.bold(`\n🎉 Successfully resolved ${result.totalFixed} issue(s)!`));
+    console.log(`  Remaining issues: ${result.remainingIssues}\n`);
   });
 
 // Command: inspect
