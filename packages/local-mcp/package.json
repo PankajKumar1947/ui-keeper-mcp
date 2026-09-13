@@ -7,6 +7,7 @@
     "ui-keeper": "./src/index.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@ui-keeper/core": "workspace:*"
   }
 }
