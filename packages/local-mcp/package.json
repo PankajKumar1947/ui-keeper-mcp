@@ -1,0 +1,12 @@
+{
+  "name": "@ui-keeper/local-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "ui-keeper": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ui-keeper/core": "workspace:*"
+  }
+}

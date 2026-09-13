@@ -25,6 +25,16 @@
         "zod": "^4.6.4",
       },
     },
+    "packages/local-mcp": {
+      "name": "@ui-keeper/local-mcp",
+      "version": "0.0.0",
+      "bin": {
+        "ui-keeper": "./src/index.ts",
+      },
+      "dependencies": {
+        "@ui-keeper/core": "workspace:*",
+      },
+    },
   },
   "packages": {
     "@types/node": ["@types/node@26.5.1", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-CzNm2FezW4VR/LjG6yUdiEgLE/rAQ9Slj5gCu/C2VrdcW7I0ahNZ8DRbHT7zOZ6r3ONgd/bsQIeSaoDGrd1C6g=="],
@@ -32,6 +42,8 @@
     "@ui-keeper/cli": ["@ui-keeper/cli@workspace:packages/cli"],
 
     "@ui-keeper/core": ["@ui-keeper/core@workspace:packages/core"],
+
+    "@ui-keeper/local-mcp": ["@ui-keeper/local-mcp@workspace:packages/local-mcp"],
 
     "commander": ["commander@15.0.0", "", {}, "sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg=="],
 
