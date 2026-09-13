@@ -38,3 +38,12 @@ export type BrowserCheckResult = z.infer<typeof schemas.BrowserCheckResultSchema
 export type HealthScore = z.infer<typeof schemas.HealthScoreSchema>;
 export type HealthGrade = z.infer<typeof schemas.HealthGradeSchema>;
 
+export type InspectDesignSystemInput = z.infer<typeof schemas.InspectDesignSystemInputSchema>;
+export type InspectUiInput = z.infer<typeof schemas.InspectUiInputSchema>;
+export type AuditUiInput = z.infer<typeof schemas.AuditUiInputSchema>;
+export type GetUiHealthScoreInput = z.infer<typeof schemas.GetUiHealthScoreInputSchema>;
+export type ScaffoldComponentInput = z.infer<typeof schemas.ScaffoldComponentInputSchema>;
+export type FindComponentInput = z.infer<typeof schemas.FindComponentInputSchema>;
+export type FindDesignTokenInput = z.infer<typeof schemas.FindDesignTokenInputSchema>;
+export type ApplyUiFixInput = z.infer<typeof schemas.ApplyUiFixInputSchema>;
+

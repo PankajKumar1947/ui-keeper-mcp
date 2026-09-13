@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
@@ -11,6 +10,14 @@ import {
   generateComponent,
   calculateHealthScore,
   colorDistance,
+  InspectDesignSystemInputSchema,
+  InspectUiInputSchema,
+  AuditUiInputSchema,
+  GetUiHealthScoreInputSchema,
+  ScaffoldComponentInputSchema,
+  FindComponentInputSchema,
+  FindDesignTokenInputSchema,
+  ApplyUiFixInputSchema,
 } from "@ui-keeper/core";
 
 export function createMcpServer() {
@@ -27,11 +34,10 @@ export function createMcpServer() {
       title: "Inspect Design System",
       description:
         "Extract and inspect the design system tokens (colors, spacing scale, typography, radius, shadows, breakpoints) for the project.",
-      inputSchema: {
-        rootDir: z.string().optional().describe("Optional project root directory"),
-      },
+      inputSchema: InspectDesignSystemInputSchema.shape,
     },
     async (input) => {
+
       const rootDir = input.rootDir || process.cwd();
       const model = analyzeProject({ rootDir });
       return {
@@ -47,9 +53,7 @@ export function createMcpServer() {
       title: "Inspect UI Model",
       description:
         "Inspect the complete UI model of the project, including framework, styling engine, tokens, component catalog, and routes.",
-      inputSchema: {
-        rootDir: z.string().optional().describe("Optional project root directory"),
-      },
+      inputSchema: InspectUiInputSchema.shape,
     },
     async (input) => {
       const rootDir = input.rootDir || process.cwd();
@@ -67,10 +71,7 @@ export function createMcpServer() {
       title: "Audit UI",
       description:
         "Audit a file or project against the design system to detect style drift, hardcoded colors/spacing, class conflicts, contrast issues, and duplicate components.",
-      inputSchema: {
-        rootDir: z.string().optional().describe("Project root directory"),
-        targetPath: z.string().optional().describe("Optional specific file or directory path to audit"),
-      },
+      inputSchema: AuditUiInputSchema.shape,
     },
     async (input) => {
       const rootDir = input.rootDir || process.cwd();
@@ -91,10 +92,7 @@ export function createMcpServer() {
       title: "Get UI Health Score",
       description:
         "Calculate a comprehensive 0-100% UI Quality and Design System Health score with letter grade and recommendations.",
-      inputSchema: {
-        rootDir: z.string().optional().describe("Project root directory"),
-        targetPath: z.string().optional().describe("Optional file or directory to score"),
-      },
+      inputSchema: GetUiHealthScoreInputSchema.shape,
     },
     async (input) => {
       const rootDir = input.rootDir || process.cwd();
@@ -115,12 +113,7 @@ export function createMcpServer() {
       title: "Scaffold Component",
       description:
         "Generate a production-ready, type-safe, token-compliant React component file (e.g. Card, Badge, Stat, Section).",
-      inputSchema: {
-        name: z.string().describe("Component name e.g. ProjectCard"),
-        category: z.enum(["card", "button", "badge", "stat", "input", "section", "other"]).optional(),
-        rootDir: z.string().optional().describe("Project root directory"),
-        writeToFile: z.boolean().optional().describe("If true, saves component file directly to disk"),
-      },
+      inputSchema: ScaffoldComponentInputSchema.shape,
     },
     async (input) => {
       const rootDir = input.rootDir || process.cwd();
@@ -143,11 +136,7 @@ export function createMcpServer() {
       title: "Find Component",
       description:
         "Search existing UI components in the project catalog by name or category to prevent duplicate implementations.",
-      inputSchema: {
-        query: z.string().describe("Search keyword (e.g. 'button', 'card', 'modal', 'input')"),
-        category: z.string().optional().describe("Optional component category filter"),
-        rootDir: z.string().optional().describe("Project root directory"),
-      },
+      inputSchema: FindComponentInputSchema.shape,
     },
     async (input) => {
       const rootDir = input.rootDir || process.cwd();
@@ -190,11 +179,7 @@ export function createMcpServer() {
       title: "Find Design Token",
       description:
         "Find the matching or closest design system token for a specific color (hex/rgb), spacing, or radius.",
-      inputSchema: {
-        type: z.enum(["color", "spacing", "radius"]).describe("Token category type"),
-        value: z.string().describe("The raw value to search for (e.g. '#1e293b' or '16px')"),
-        rootDir: z.string().optional().describe("Project root directory"),
-      },
+      inputSchema: FindDesignTokenInputSchema.shape,
     },
     async (input) => {
       const rootDir = input.rootDir || process.cwd();
@@ -279,10 +264,7 @@ export function createMcpServer() {
       title: "Apply UI Fix",
       description:
         "Apply high-confidence automated fixes to UI issues and verify them using the verification loop.",
-      inputSchema: {
-        rootDir: z.string().optional().describe("Project root directory"),
-        targetPath: z.string().optional().describe("Optional file or directory to fix"),
-      },
+      inputSchema: ApplyUiFixInputSchema.shape,
     },
     async (input) => {
       const rootDir = input.rootDir || process.cwd();
@@ -295,6 +277,7 @@ export function createMcpServer() {
       };
     }
   );
+
 
   return server;
 }
