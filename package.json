@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev:cli": "bun run packages/cli/src/index.ts"
+    "start": "bun run packages/cli/src/index.ts",
+    "start:mcp": "bun run packages/local-mcp/src/index.ts",
+    "test": "bun test"
   },
   "workspaces": [
     "packages/*"
