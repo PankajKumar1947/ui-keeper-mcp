@@ -11,8 +11,13 @@
     "packages/cli": {
       "name": "@ui-keeper/cli",
       "version": "0.0.0",
+      "bin": {
+        "ui-keeper": "./src/index.ts",
+      },
       "dependencies": {
+        "@ui-keeper/core": "workspace:*",
         "commander": "^15.0.0",
+        "picocolors": "^1.1.1",
       },
       "devDependencies": {
         "@types/node": "^26.5.1",
@@ -47,6 +52,8 @@
     "@ui-keeper/local-mcp": ["@ui-keeper/local-mcp@workspace:packages/local-mcp"],
 
     "commander": ["commander@15.0.0", "", {}, "sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg=="],
+
+    "picocolors": ["picocolors@1.1.1", "", {}, "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="],
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

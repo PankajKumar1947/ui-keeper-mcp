@@ -3,8 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "ui-keeper": "./src/index.ts"
+  },
   "dependencies": {
-    "commander": "^15.0.0"
+    "@ui-keeper/core": "workspace:*",
+    "commander": "^15.0.0",
+    "picocolors": "^1.1.1"
   },
   "devDependencies": {
     "@types/node": "^26.5.1"
