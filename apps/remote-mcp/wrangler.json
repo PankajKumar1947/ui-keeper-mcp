@@ -6,6 +6,11 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "minify": true,
+  "define": {
+    "__filename": "\"index.js\"",
+    "__dirname": "\"\""
+  },
   "observability": {
     "enabled": true
   }
