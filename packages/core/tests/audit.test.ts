@@ -34,10 +34,6 @@ describe("Static UI Audit Engine", () => {
       `export function Button({ children }: { children: React.ReactNode }) { return <button>{children}</button>; }`
     );
 
-    // Page with violations:
-    // 1. Hardcoded arbitrary color bg-[#1e293b]
-    // 2. Arbitrary spacing p-[18px]
-    // 3. Duplicate inline <button className="...">
     writeFileSync(
       path.join(tempDir, "src", "app", "page.tsx"),
       `
@@ -66,10 +62,64 @@ describe("Static UI Audit Engine", () => {
     const spacingIssue = report.issues.find((i) => i.ruleId === "no-arbitrary-spacing");
     expect(spacingIssue).toBeDefined();
     expect(spacingIssue?.snippet).toContain("p-[18px]");
+    expect(spacingIssue?.message).toContain("not divisible by 4px base grid");
 
     // Check duplicate component issue
     const duplicateIssue = report.issues.find((i) => i.ruleId === "no-duplicate-components");
     expect(duplicateIssue).toBeDefined();
     expect(duplicateIssue?.message).toContain("Button");
+  });
+
+  test("handles 4px grid edge cases, rem units, font sizes, and radii", () => {
+    writeFileSync(
+      path.join(tempDir, "package.json"),
+      JSON.stringify({
+        name: "test-edge-cases",
+        dependencies: { next: "14.0.0" },
+        devDependencies: { tailwindcss: "3.4.0" },
+      })
+    );
+
+    mkdirSync(path.join(tempDir, "src", "app"), { recursive: true });
+
+    writeFileSync(
+      path.join(tempDir, "src", "app", "card.tsx"),
+      `
+      export function Card() {
+        return (
+          <div className="gap-[24px] p-[1.5rem] rounded-[8px] text-[14px] -m-[16px]">
+            <span>Content</span>
+          </div>
+        );
+      }
+      `
+    );
+
+    const report = auditProject({ rootDir: tempDir });
+
+    // 1. gap-[24px] -> gap-6 (exact 4px multiple in brackets)
+    const gapIssue = report.issues.find((i) => i.snippet === "gap-[24px]");
+    expect(gapIssue).toBeDefined();
+    expect(gapIssue?.suggestedFix?.replacementText).toBe("gap-6");
+
+    // 2. p-[1.5rem] -> p-6 (rem conversion: 1.5 * 16 = 24px)
+    const remIssue = report.issues.find((i) => i.snippet === "p-[1.5rem]");
+    expect(remIssue).toBeDefined();
+    expect(remIssue?.suggestedFix?.replacementText).toBe("p-6");
+
+    // 3. rounded-[8px] -> rounded-lg
+    const radiusIssue = report.issues.find((i) => i.snippet === "rounded-[8px]");
+    expect(radiusIssue).toBeDefined();
+    expect(radiusIssue?.suggestedFix?.replacementText).toBe("rounded-lg");
+
+    // 4. text-[14px] -> text-sm
+    const fontIssue = report.issues.find((i) => i.snippet === "text-[14px]");
+    expect(fontIssue).toBeDefined();
+    expect(fontIssue?.suggestedFix?.replacementText).toBe("text-sm");
+
+    // 5. -m-[16px] -> -m-4 (negative margin)
+    const negIssue = report.issues.find((i) => i.snippet === "-m-[16px]");
+    expect(negIssue).toBeDefined();
+    expect(negIssue?.suggestedFix?.replacementText).toBe("-m-4");
   });
 });
