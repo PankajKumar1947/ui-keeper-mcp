@@ -6,6 +6,10 @@ import { checkHardcodedColors } from "./rules/no-hardcoded-colors";
 import { checkArbitraryValues } from "./rules/no-arbitrary-values";
 import { checkDuplicateComponents } from "./rules/no-duplicate-components";
 import { checkRepeatedInlineJsx } from "./rules/no-repeated-inline-jsx";
+import { checkConflictingClasses } from "./rules/no-conflicting-classes";
+import { checkColorContrast } from "./rules/contrast-validator";
+import { checkRebuildingLibraryComponents } from "./rules/no-rebuilding-library-components";
+import { detectInstalledLibraries } from "../extractor/library-detector";
 
 export interface AuditEngineOptions {
   targetPath?: string;
@@ -40,6 +44,7 @@ export function runAudit(options: AuditEngineOptions): AuditReport {
   const { projectModel } = options;
   const rootDir = projectModel.config.rootDir;
   const target = options.targetPath ? path.resolve(options.targetPath) : rootDir;
+  const libInfo = detectInstalledLibraries(rootDir);
 
   const files = findSourceFiles(target);
   const issues: AuditIssue[] = [];
@@ -57,17 +62,26 @@ export function runAudit(options: AuditEngineOptions): AuditReport {
         isTsx ? ts.ScriptKind.TSX : ts.ScriptKind.JSX
       );
 
-      // Run Rule 1: Hardcoded Colors
+      // Rule 1: Hardcoded Colors
       issues.push(...checkHardcodedColors(sourceFile, relPath, projectModel.designSystem));
 
-      // Run Rule 2: Arbitrary Values
+      // Rule 2: Arbitrary Values (4px grid, rem, font size, radius)
       issues.push(...checkArbitraryValues(sourceFile, relPath, projectModel.designSystem));
 
-      // Run Rule 3: Duplicate Components
+      // Rule 3: Duplicate Components
       issues.push(...checkDuplicateComponents(sourceFile, relPath, projectModel.componentCatalog));
 
-      // Run Rule 4: Repeated Inline JSX
+      // Rule 4: Repeated Inline JSX
       issues.push(...checkRepeatedInlineJsx(sourceFile, relPath));
+
+      // Rule 5: Conflicting / Redundant Tailwind Classes
+      issues.push(...checkConflictingClasses(sourceFile, relPath));
+
+      // Rule 6: Color Contrast Ratio (WCAG AA/AAA)
+      issues.push(...checkColorContrast(sourceFile, relPath, projectModel.designSystem));
+
+      // Rule 7: Rebuilding Library Components
+      issues.push(...checkRebuildingLibraryComponents(sourceFile, relPath, libInfo));
     } catch {
       // Continue on file parse errors
     }

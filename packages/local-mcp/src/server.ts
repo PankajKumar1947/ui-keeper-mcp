@@ -3,7 +3,14 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { analyzeProject, auditProject, fixProject, colorDistance } from "@ui-keeper/core";
+import {
+  analyzeProject,
+  auditProject,
+  fixProject,
+  generateComponent,
+  calculateHealthScore,
+  colorDistance,
+} from "@ui-keeper/core";
 
 export function createServer() {
   const server = new Server(
@@ -53,7 +60,7 @@ export function createServer() {
         {
           name: "audit_ui",
           description:
-            "Audit a file or project against the design system to detect style drift, hardcoded colors/spacing, and duplicate components.",
+            "Audit a file or project against the design system to detect style drift, hardcoded colors/spacing, class conflicts, contrast issues, and duplicate components.",
           inputSchema: {
             type: "object",
             properties: {
@@ -64,6 +71,52 @@ export function createServer() {
               targetPath: {
                 type: "string",
                 description: "Optional specific file or directory path to audit.",
+              },
+            },
+          },
+        },
+        {
+          name: "get_ui_health_score",
+          description:
+            "Calculate a comprehensive 0-100% UI Quality and Design System Health score with letter grade and recommendations.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              rootDir: {
+                type: "string",
+                description: "Project root directory.",
+              },
+              targetPath: {
+                type: "string",
+                description: "Optional file or directory to score.",
+              },
+            },
+          },
+        },
+        {
+          name: "scaffold_component",
+          description:
+            "Generate a production-ready, type-safe, token-compliant React component file (e.g. Card, Badge, Stat, Section).",
+          inputSchema: {
+            type: "object",
+            required: ["name"],
+            properties: {
+              name: {
+                type: "string",
+                description: "Name of the component (e.g. 'ProjectCard', 'StatBox').",
+              },
+              category: {
+                type: "string",
+                enum: ["card", "button", "badge", "stat", "input", "section", "other"],
+                description: "Component category type.",
+              },
+              rootDir: {
+                type: "string",
+                description: "Project root directory.",
+              },
+              writeToFile: {
+                type: "boolean",
+                description: "If true, saves component file directly to disk.",
               },
             },
           },
@@ -177,6 +230,38 @@ export function createServer() {
             {
               type: "text",
               text: JSON.stringify(report, null, 2),
+            },
+          ],
+        };
+      }
+
+      if (name === "get_ui_health_score") {
+        const health = calculateHealthScore({
+          rootDir,
+          targetPath: args.targetPath as string | undefined,
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(health, null, 2),
+            },
+          ],
+        };
+      }
+
+      if (name === "scaffold_component") {
+        const comp = generateComponent({
+          rootDir,
+          name: args.name as string,
+          category: args.category as any,
+          writeToFile: !!args.writeToFile,
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(comp, null, 2),
             },
           ],
         };

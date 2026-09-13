@@ -34,3 +34,7 @@ export type ViewportConfig = z.infer<typeof schemas.ViewportConfigSchema>;
 export type OverflowIssue = z.infer<typeof schemas.OverflowIssueSchema>;
 export type A11yViolation = z.infer<typeof schemas.A11yViolationSchema>;
 export type BrowserCheckResult = z.infer<typeof schemas.BrowserCheckResultSchema>;
+
+export type HealthScore = z.infer<typeof schemas.HealthScoreSchema>;
+export type HealthGrade = z.infer<typeof schemas.HealthGradeSchema>;
+

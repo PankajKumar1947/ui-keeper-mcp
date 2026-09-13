@@ -1,8 +1,15 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
 import * as path from "node:path";
+import { writeFileSync, existsSync, chmodSync, mkdirSync } from "node:fs";
 import pc from "picocolors";
-import { analyzeProject, auditProject, fixProject, checkPage } from "@ui-keeper/core";
+import {
+  analyzeProject,
+  auditProject,
+  fixProject,
+  generateComponent,
+  calculateHealthScore,
+} from "@ui-keeper/core";
 
 const program = new Command();
 
@@ -74,7 +81,7 @@ program
 // Command: audit
 program
   .command("audit [path]")
-  .description("Find static UI, design-system drift, and duplication problems")
+  .description("Find static UI, design-system drift, class conflicts, contrast violations, and duplication")
   .option("-t, --target <path>", "Specific file or directory to audit")
   .action((targetPath = ".", options) => {
     const rootDir = path.resolve(targetPath);
@@ -150,6 +157,94 @@ program
 
     console.log(pc.bold(`\n🎉 Successfully resolved ${result.totalFixed} issue(s)!`));
     console.log(`  Remaining issues: ${result.remainingIssues}\n`);
+  });
+
+// Command: score
+program
+  .command("score [path]")
+  .description("Calculate design system health score, grade (A-F), and metric breakdown")
+  .action((targetPath = ".") => {
+    const rootDir = path.resolve(targetPath);
+    console.log(pc.cyan(`\n📊 Calculating UI Design System Health Score for: ${rootDir}...\n`));
+    const health = calculateHealthScore({ rootDir });
+
+    const gradeColor =
+      health.grade === "A+" || health.grade === "A"
+        ? pc.green
+        : health.grade === "B"
+        ? pc.cyan
+        : health.grade === "C"
+        ? pc.yellow
+        : pc.red;
+
+    console.log(pc.bold("Design System Health Report:"));
+    console.log(`  Overall Grade:        ${gradeColor(pc.bold(health.grade))} (${pc.bold(health.overallScore.toString())}/100)`);
+    console.log(`  Token Adoption Rate:  ${pc.yellow(health.tokenAdoptionScore + "%")}`);
+    console.log(`  Component Reuse Rate: ${pc.yellow(health.componentReuseScore + "%")}`);
+    console.log(`  Code Cleanliness:     ${pc.yellow(health.cleanlinessScore + "%")}`);
+    console.log(`  Total Issues:         ${health.totalIssues} (${health.errorsCount} errors, ${health.warningsCount} warnings)\n`);
+
+    console.log(pc.bold(pc.underline("Recommendations:")));
+    for (const rec of health.recommendations) {
+      console.log(`  • ${rec}`);
+    }
+    console.log();
+  });
+
+// Command: generate
+program
+  .command("generate <category> <name>")
+  .description("Scaffold a production-ready, typed React component (e.g. card ProjectCard)")
+  .option("-o, --output <path>", "Custom output file path")
+  .action((category, name, options) => {
+    const rootDir = process.cwd();
+    const result = generateComponent({
+      rootDir,
+      name,
+      category: category as any,
+      outputPath: options.output,
+      writeToFile: true,
+    });
+
+    console.log(pc.green(`\n✔ Created <${result.componentName}> component at ${result.savedPath}\n`));
+  });
+
+// Command: hook
+program
+  .command("hook [action]")
+  .description("Install git pre-commit hook to verify UI quality before committing")
+  .action((action = "install") => {
+    const rootDir = process.cwd();
+    const gitDir = path.join(rootDir, ".git");
+    const hooksDir = path.join(gitDir, "hooks");
+
+    if (!existsSync(gitDir)) {
+      console.log(pc.red("✖ Not a git repository (no .git directory found)."));
+      return;
+    }
+
+    if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
+
+    const hookFile = path.join(hooksDir, "pre-commit");
+    const hookScript = `#!/usr/bin/env sh
+# UI Keeper Pre-commit Quality Check
+echo "🔍 Running UI Keeper audit..."
+bun run /Users/pankaj/Developer/projects/ui-keeper/packages/cli/src/index.ts audit .
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo "✖ UI Keeper found blocking errors. Fix before committing or commit with --no-verify."
+  exit 1
+fi
+`;
+
+    writeFileSync(hookFile, hookScript, "utf-8");
+    try {
+      chmodSync(hookFile, "755");
+    } catch {
+      // Ignore chmod error on windows
+    }
+
+    console.log(pc.green("✔ Installed UI Keeper git pre-commit hook in .git/hooks/pre-commit!\n"));
   });
 
 // Command: inspect
