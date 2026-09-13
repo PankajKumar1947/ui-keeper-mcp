@@ -1,52 +1,54 @@
 # 🌐 @ui-keeper/remote-mcp
 
-Deployable Remote Model Context Protocol (MCP) Server built with **[Hono](https://hono.dev)** and Server-Sent Events (SSE) transport.
+Edge-ready Remote Model Context Protocol (MCP) Server built with **[Hono](https://hono.dev)** and `@modelcontextprotocol/sdk` streamable HTTP transport, optimized for **Cloudflare Workers** and Bun.
+
+---
+
+## ⚡ Deployment to Cloudflare Workers
+
+Deploy globally to Cloudflare Workers in seconds using Wrangler:
+
+```bash
+# 1. Login to Cloudflare (first time only)
+bun x wrangler login
+
+# 2. Deploy to Cloudflare Workers
+cd apps/remote-mcp
+bun run deploy
+```
 
 ---
 
 ## 🚀 Running Locally
 
 ```bash
-bun run apps/remote-mcp/src/index.ts
+# Local edge simulation via Wrangler
+bun --cwd apps/remote-mcp run cf:dev
+
+# Or run directly with Bun
+bun --cwd apps/remote-mcp run dev
 ```
-*Server will start on `http://localhost:3001`.*
 
 ---
 
 ## 📡 Endpoints
 
-- `GET /sse` — Establishes persistent Server-Sent Events (SSE) stream for AI coding agents.
-- `POST /messages?sessionId=<id>` — Ingests client JSON-RPC messages and routes to active session.
-- `GET /health` — Health check endpoint for uptime monitors and load balancers.
-- `GET /` — API metadata and active sessions count.
-
----
-
-## ☁️ Deployment
-
-### 1. Docker
-```bash
-docker build -t ui-keeper-remote-mcp -f apps/remote-mcp/Dockerfile .
-docker run -p 3001:3001 ui-keeper-remote-mcp
-```
-
-### 2. Railway / Render / Fly.io
-Deploy this repository and set the start command to:
-```bash
-bun run apps/remote-mcp/src/index.ts
-```
+- `ALL /mcp` — WebStandard Streamable HTTP JSON-RPC MCP endpoint for AI coding agents.
+- `GET /health` — Health check endpoint for uptime monitors.
+- `GET /` — API metadata, framework, and transport status.
 
 ---
 
 ## 🤖 Connecting AI Clients to Remote MCP
 
-In `mcp.json` / Cursor / OpenCode:
+In `mcp.json` / Cursor / OpenCode / Claude Code / Windsurf:
 ```json
 {
   "mcpServers": {
     "ui-keeper-remote": {
-      "url": "https://your-deployed-domain.com/sse"
+      "url": "https://ui-keeper-remote-mcp.<your-subdomain>.workers.dev/mcp"
     }
   }
 }
 ```
+

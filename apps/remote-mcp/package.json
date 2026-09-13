@@ -5,12 +5,18 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
-    "dev": "bun --watch src/index.ts"
+    "dev": "bun --watch src/index.ts",
+    "cf:dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@ui-keeper/core": "workspace:*",
     "@ui-keeper/local-mcp": "workspace:*",
     "hono": "^4.13.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250224.0",
+    "wrangler": "^3.114.0"
   }
 }

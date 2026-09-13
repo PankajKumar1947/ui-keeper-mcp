@@ -356,17 +356,6 @@ app.notFound((c) => {
   return c.json({ error: "Not Found" }, 404);
 });
 
-const port = Number(process.env.PORT ?? 3001);
-
 export { app };
+export default app;
 
-export default {
-  port,
-  fetch: (req: Request) => {
-    const url = new URL(req.url);
-    url.protocol = req.headers.get("x-forwarded-proto") ?? url.protocol;
-    url.host = req.headers.get("x-forwarded-host") ?? url.host;
-
-    return app.fetch(new Request(url, req));
-  },
-};
