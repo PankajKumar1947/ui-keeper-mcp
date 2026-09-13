@@ -40,15 +40,19 @@ bun --cwd apps/remote-mcp run dev
 ---
 
 ## 🤖 Connecting AI Clients to Remote MCP
+ 
+### Live Production Endpoint
+`https://ui-keeper-remote-mcp.veerukry79.workers.dev/mcp`
 
 In `mcp.json` / Cursor / OpenCode / Claude Code / Windsurf:
 ```json
 {
   "mcpServers": {
     "ui-keeper-remote": {
-      "url": "https://ui-keeper-remote-mcp.<your-subdomain>.workers.dev/mcp"
+      "url": "https://ui-keeper-remote-mcp.veerukry79.workers.dev/mcp"
     }
   }
 }
 ```
+
 

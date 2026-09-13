@@ -56,12 +56,31 @@ bun test
 
 ## 3. Connecting UI Keeper to AI Coding Agents (MCP)
 
-UI Keeper includes a Model Context Protocol (MCP) server located at `packages/local-mcp/src/index.ts`.
+UI Keeper can be used in two ways:
+1. **🌐 Live Remote MCP (Zero-Setup Cloudflare Worker)**: Connect directly to the globally deployed edge endpoint: `https://ui-keeper-remote-mcp.veerukry79.workers.dev/mcp`
+2. **💻 Local Stdio MCP**: Run locally on your machine via Bun (`packages/local-mcp/src/index.ts`).
+
+---
 
 ### A. OpenCode
 
-In your target project's root directory, create or add to `opencode.json`:
+In your project root or in `~/.config/opencode/opencode.json`:
 
+#### Option 1: Live Cloudflare Remote MCP (Recommended)
+```json
+{
+  "$schema": "https://opencode.ai/schema.json",
+  "mcp": {
+    "ui-keeper": {
+      "type": "remote",
+      "url": "https://ui-keeper-remote-mcp.veerukry79.workers.dev/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+#### Option 2: Local Stdio MCP
 ```json
 {
   "$schema": "https://opencode.ai/schema.json",
@@ -79,18 +98,22 @@ In your target project's root directory, create or add to `opencode.json`:
 }
 ```
 
-*Tip: To enable UI Keeper globally for all OpenCode projects, save this file to `~/.config/opencode/opencode.json`.*
-
 ---
 
 ### B. Cursor
 
 1. Open **Cursor Settings** $\rightarrow$ **Features** $\rightarrow$ **MCP**.
 2. Click **+ Add New MCP Server**.
-3. Fill in:
-   - **Name**: `ui-keeper`
-   - **Type**: `command`
-   - **Command**: `bun run /absolute/path/to/ui-keeper/packages/local-mcp/src/index.ts`
+
+#### Option 1: Live Cloudflare Remote MCP
+- **Name**: `ui-keeper`
+- **Type**: `sse` / `http`
+- **Server URL**: `https://ui-keeper-remote-mcp.veerukry79.workers.dev/mcp`
+
+#### Option 2: Local Stdio MCP
+- **Name**: `ui-keeper`
+- **Type**: `command`
+- **Command**: `bun run /absolute/path/to/ui-keeper/packages/local-mcp/src/index.ts`
 
 ---
 
@@ -98,6 +121,18 @@ In your target project's root directory, create or add to `opencode.json`:
 
 Add to your `claude_desktop_config.json`:
 
+#### Option 1: Live Cloudflare Remote MCP
+```json
+{
+  "mcpServers": {
+    "ui-keeper": {
+      "url": "https://ui-keeper-remote-mcp.veerukry79.workers.dev/mcp"
+    }
+  }
+}
+```
+
+#### Option 2: Local Stdio MCP
 ```json
 {
   "mcpServers": {
@@ -116,8 +151,20 @@ Add to your `claude_desktop_config.json`:
 
 ### D. Windsurf
 
-In your project's `.windsurfrules` or `mcp_config.json`:
+In `.windsurfrules` or `mcp_config.json`:
 
+#### Option 1: Live Cloudflare Remote MCP
+```json
+{
+  "mcpServers": {
+    "ui-keeper": {
+      "url": "https://ui-keeper-remote-mcp.veerukry79.workers.dev/mcp"
+    }
+  }
+}
+```
+
+#### Option 2: Local Stdio MCP
 ```json
 {
   "mcpServers": {
@@ -131,6 +178,7 @@ In your project's `.windsurfrules` or `mcp_config.json`:
   }
 }
 ```
+
 
 ---
 
