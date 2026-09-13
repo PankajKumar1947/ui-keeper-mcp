@@ -4,3 +4,4 @@ export * from "./schema";
 export * from "./extractor";
 export * from "./utils";
 export * from "./audit";
+export * from "./browser";
