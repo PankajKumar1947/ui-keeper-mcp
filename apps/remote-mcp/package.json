@@ -1,0 +1,17 @@
+{
+  "name": "@ui-keeper/remote-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch src/index.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@ui-keeper/core": "workspace:*",
+    "@ui-keeper/local-mcp": "workspace:*",
+    "hono": "^4.13.7"
+  }
+}

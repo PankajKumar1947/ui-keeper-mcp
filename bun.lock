@@ -9,6 +9,17 @@
         "@types/node": "^26.5.1",
       },
     },
+    "apps/remote-mcp": {
+      "name": "@ui-keeper/remote-mcp",
+      "version": "0.0.0",
+      "dependencies": {
+        "@hono/node-server": "^2.1.1",
+        "@modelcontextprotocol/sdk": "^1.30.0",
+        "@ui-keeper/core": "workspace:*",
+        "@ui-keeper/local-mcp": "workspace:*",
+        "hono": "^4.13.7",
+      },
+    },
     "packages/cli": {
       "name": "@ui-keeper/cli",
       "version": "0.0.0",
@@ -58,6 +69,8 @@
     "@ui-keeper/core": ["@ui-keeper/core@workspace:packages/core"],
 
     "@ui-keeper/local-mcp": ["@ui-keeper/local-mcp@workspace:packages/local-mcp"],
+
+    "@ui-keeper/remote-mcp": ["@ui-keeper/remote-mcp@workspace:apps/remote-mcp"],
 
     "accepts": ["accepts@2.0.0", "", { "dependencies": { "mime-types": "^3.0.0", "negotiator": "^1.0.0" } }, "sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng=="],
 
