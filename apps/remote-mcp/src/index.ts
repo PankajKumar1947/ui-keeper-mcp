@@ -1,12 +1,303 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { serve } from "@hono/node-server";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { createServer as createMcpServer } from "@ui-keeper/local-mcp";
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import {
+  analyzeProject,
+  auditProject,
+  fixProject,
+  generateComponent,
+  calculateHealthScore,
+  colorDistance,
+} from "@ui-keeper/core";
 
-const PORT = parseInt(process.env.PORT || "3001", 10);
-const HOST = process.env.HOST || "0.0.0.0";
+export function createMcpServer() {
+  const server = new McpServer({
+    name: "ui-keeper-remote-mcp",
+    version: "0.1.0",
+    description: "Remote Streamable MCP server for UI Keeper",
+  });
+
+  // Tool 1: inspect_design_system
+  server.registerTool(
+    "inspect_design_system",
+    {
+      title: "Inspect Design System",
+      description:
+        "Extract and inspect the design system tokens (colors, spacing scale, typography, radius, shadows, breakpoints) for the project.",
+      inputSchema: {
+        rootDir: z.string().optional().describe("Optional project root directory"),
+      },
+    },
+    async (input) => {
+      const rootDir = input.rootDir || process.cwd();
+      const model = analyzeProject({ rootDir });
+      return {
+        content: [{ type: "text", text: JSON.stringify(model.designSystem, null, 2) }],
+      };
+    }
+  );
+
+  // Tool 2: inspect_ui
+  server.registerTool(
+    "inspect_ui",
+    {
+      title: "Inspect UI Model",
+      description:
+        "Inspect the complete UI model of the project, including framework, styling engine, tokens, component catalog, and routes.",
+      inputSchema: {
+        rootDir: z.string().optional().describe("Optional project root directory"),
+      },
+    },
+    async (input) => {
+      const rootDir = input.rootDir || process.cwd();
+      const model = analyzeProject({ rootDir });
+      return {
+        content: [{ type: "text", text: JSON.stringify(model, null, 2) }],
+      };
+    }
+  );
+
+  // Tool 3: audit_ui
+  server.registerTool(
+    "audit_ui",
+    {
+      title: "Audit UI",
+      description:
+        "Audit a file or project against the design system to detect style drift, hardcoded colors/spacing, class conflicts, contrast issues, and duplicate components.",
+      inputSchema: {
+        rootDir: z.string().optional().describe("Project root directory"),
+        targetPath: z.string().optional().describe("Optional specific file or directory path to audit"),
+      },
+    },
+    async (input) => {
+      const rootDir = input.rootDir || process.cwd();
+      const report = auditProject({
+        rootDir,
+        targetPath: input.targetPath,
+      });
+      return {
+        content: [{ type: "text", text: JSON.stringify(report, null, 2) }],
+      };
+    }
+  );
+
+  // Tool 4: get_ui_health_score
+  server.registerTool(
+    "get_ui_health_score",
+    {
+      title: "Get UI Health Score",
+      description:
+        "Calculate a comprehensive 0-100% UI Quality and Design System Health score with letter grade and recommendations.",
+      inputSchema: {
+        rootDir: z.string().optional().describe("Project root directory"),
+        targetPath: z.string().optional().describe("Optional file or directory to score"),
+      },
+    },
+    async (input) => {
+      const rootDir = input.rootDir || process.cwd();
+      const health = calculateHealthScore({
+        rootDir,
+        targetPath: input.targetPath,
+      });
+      return {
+        content: [{ type: "text", text: JSON.stringify(health, null, 2) }],
+      };
+    }
+  );
+
+  // Tool 5: scaffold_component
+  server.registerTool(
+    "scaffold_component",
+    {
+      title: "Scaffold Component",
+      description:
+        "Generate a production-ready, type-safe, token-compliant React component file (e.g. Card, Badge, Stat, Section).",
+      inputSchema: {
+        name: z.string().describe("Component name e.g. ProjectCard"),
+        category: z.enum(["card", "button", "badge", "stat", "input", "section", "other"]).optional(),
+        rootDir: z.string().optional().describe("Project root directory"),
+        writeToFile: z.boolean().optional().describe("If true, saves component file directly to disk"),
+      },
+    },
+    async (input) => {
+      const rootDir = input.rootDir || process.cwd();
+      const comp = generateComponent({
+        rootDir,
+        name: input.name,
+        category: input.category as any,
+        writeToFile: !!input.writeToFile,
+      });
+      return {
+        content: [{ type: "text", text: JSON.stringify(comp, null, 2) }],
+      };
+    }
+  );
+
+  // Tool 6: find_component
+  server.registerTool(
+    "find_component",
+    {
+      title: "Find Component",
+      description:
+        "Search existing UI components in the project catalog by name or category to prevent duplicate implementations.",
+      inputSchema: {
+        query: z.string().describe("Search keyword (e.g. 'button', 'card', 'modal', 'input')"),
+        category: z.string().optional().describe("Optional component category filter"),
+        rootDir: z.string().optional().describe("Project root directory"),
+      },
+    },
+    async (input) => {
+      const rootDir = input.rootDir || process.cwd();
+      const model = analyzeProject({ rootDir });
+      const query = input.query.toLowerCase();
+      const category = input.category ? input.category.toLowerCase() : undefined;
+
+      const matches = model.componentCatalog.components.filter((c) => {
+        const matchQuery =
+          c.name.toLowerCase().includes(query) ||
+          c.filePath.toLowerCase().includes(query) ||
+          c.category.toLowerCase().includes(query);
+        const matchCat = category ? c.category.toLowerCase() === category : true;
+        return matchQuery && matchCat;
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                query,
+                found: matches.length,
+                components: matches,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+  );
+
+  // Tool 7: find_design_token
+  server.registerTool(
+    "find_design_token",
+    {
+      title: "Find Design Token",
+      description:
+        "Find the matching or closest design system token for a specific color (hex/rgb), spacing, or radius.",
+      inputSchema: {
+        type: z.enum(["color", "spacing", "radius"]).describe("Token category type"),
+        value: z.string().describe("The raw value to search for (e.g. '#1e293b' or '16px')"),
+        rootDir: z.string().optional().describe("Project root directory"),
+      },
+    },
+    async (input) => {
+      const rootDir = input.rootDir || process.cwd();
+      const model = analyzeProject({ rootDir });
+
+      if (input.type === "color") {
+        let closest: { token: any; distance: number } | null = null;
+        for (const token of model.designSystem.colors) {
+          if (!token.hex) continue;
+          const dist = colorDistance(input.value, token.hex);
+          if (dist !== null) {
+            if (!closest || dist < closest.distance) {
+              closest = { token, distance: dist };
+            }
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  searchedValue: input.value,
+                  match: closest?.token,
+                  distance: closest?.distance,
+                  isExactMatch: closest?.distance === 0,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } else if (input.type === "spacing") {
+        const pxVal = parseFloat(input.value);
+        const match = model.designSystem.spacing.find(
+          (s) => s.value === input.value || s.pxValue === pxVal || s.name === input.value
+        );
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  searchedValue: input.value,
+                  match: match || null,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } else {
+        const match = model.designSystem.radius.find(
+          (r) => r.value === input.value || r.name === input.value
+        );
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  searchedValue: input.value,
+                  match: match || null,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Tool 8: apply_ui_fix
+  server.registerTool(
+    "apply_ui_fix",
+    {
+      title: "Apply UI Fix",
+      description:
+        "Apply high-confidence automated fixes to UI issues and verify them using the verification loop.",
+      inputSchema: {
+        rootDir: z.string().optional().describe("Project root directory"),
+        targetPath: z.string().optional().describe("Optional file or directory to fix"),
+      },
+    },
+    async (input) => {
+      const rootDir = input.rootDir || process.cwd();
+      const result = fixProject({
+        rootDir,
+        targetPath: input.targetPath,
+      });
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    }
+  );
+
+  return server;
+}
 
 const app = new Hono();
 
@@ -16,13 +307,11 @@ app.use(
   "*",
   cors({
     origin: "*",
-    allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "OPTIONS", "DELETE", "HEAD"],
+    allowHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+    exposeHeaders: ["Content-Type"],
   })
 );
-
-// Active SSE client sessions
-const sessions = new Map<string, SSEServerTransport>();
 
 // 1. Root & Health Check Endpoints
 app.get("/", (c) => {
@@ -30,11 +319,10 @@ app.get("/", (c) => {
     status: "ok",
     service: "ui-keeper-remote-mcp",
     framework: "hono",
+    transport: "WebStandardStreamableHTTPServerTransport",
     version: "0.1.0",
-    activeSessions: sessions.size,
     endpoints: {
-      sse: "/sse",
-      messages: "/messages",
+      mcp: "/mcp",
       health: "/health",
     },
   });
@@ -44,73 +332,58 @@ app.get("/health", (c) => {
   return c.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    activeSessions: sessions.size,
   });
 });
 
-// 2. Server-Sent Events (SSE) Stream Endpoint
-app.get("/sse", async (c) => {
-  const res = (c.env as any)?.outgoing;
+// 2. Web Standard Streamable HTTP MCP Handler (handles all MCP requests)
+app.all("/mcp", async (c) => {
+  const server = createMcpServer();
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
 
-  if (!res) {
-    return c.text("Node server response adapter required for SSE transport", 500);
+  await server.connect(transport);
+
+  try {
+    return await transport.handleRequest(c.req.raw);
+  } finally {
+    await server.close();
   }
-
-  const mcpServer = createMcpServer();
-  const transport = new SSEServerTransport("/messages", res);
-
-  sessions.set(transport.sessionId, transport);
-
-  transport.onclose = () => {
-    sessions.delete(transport.sessionId);
-  };
-
-  await mcpServer.connect(transport);
-  return new Response(null, { status: 200 });
 });
 
-// 3. Message Receiver Endpoint
-app.post("/messages", async (c) => {
-  const sessionId = c.req.query("sessionId");
-  if (!sessionId) {
-    return c.text("Missing sessionId query parameter", 400);
+// Also support parameterized path (e.g. /:projectId/mcp)
+app.all("/:projectId/mcp", async (c) => {
+  const server = createMcpServer();
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
+
+  await server.connect(transport);
+
+  try {
+    return await transport.handleRequest(c.req.raw);
+  } finally {
+    await server.close();
   }
-
-  const transport = sessions.get(sessionId);
-  if (!transport) {
-    return c.text(`Session not found: ${sessionId}`, 404);
-  }
-
-  const req = (c.env as any)?.incoming;
-  const res = (c.env as any)?.outgoing;
-
-  if (!req || !res) {
-    return c.text("Node server adapter required for post message handling", 500);
-  }
-
-  await transport.handlePostMessage(req, res);
-  return new Response(null, { status: 200 });
 });
 
-export function startServer(port = PORT, host = HOST) {
-  return serve(
-    {
-      fetch: app.fetch,
-      port,
-      hostname: host,
-    },
-    (info) => {
-      console.log(`\n🚀 UI Keeper Remote MCP Server (Hono) running at http://${host}:${port}`);
-      console.log(`   • SSE Endpoint:      http://${host}:${port}/sse`);
-      console.log(`   • Message Endpoint:  http://${host}:${port}/messages`);
-      console.log(`   • Health Check:      http://${host}:${port}/health\n`);
-    }
-  );
-}
+app.notFound((c) => {
+  return c.json({ error: "Not Found" }, 404);
+});
 
-// Auto-start if executed directly as entrypoint
-if (import.meta.main) {
-  startServer();
-}
+const port = Number(process.env.PORT ?? 3001);
 
 export { app };
+
+export default {
+  port,
+  fetch: (req: Request) => {
+    const url = new URL(req.url);
+    url.protocol = req.headers.get("x-forwarded-proto") ?? url.protocol;
+    url.host = req.headers.get("x-forwarded-host") ?? url.host;
+
+    return app.fetch(new Request(url, req));
+  },
+};

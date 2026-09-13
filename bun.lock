@@ -13,7 +13,6 @@
       "name": "@ui-keeper/remote-mcp",
       "version": "0.0.0",
       "dependencies": {
-        "@hono/node-server": "^2.1.1",
         "@modelcontextprotocol/sdk": "^1.30.0",
         "@ui-keeper/core": "workspace:*",
         "@ui-keeper/local-mcp": "workspace:*",
