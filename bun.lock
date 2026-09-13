@@ -1,0 +1,42 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "ui-keeper",
+      "devDependencies": {
+        "@types/node": "^26.5.1",
+      },
+    },
+    "packages/cli": {
+      "name": "@ui-keeper/cli",
+      "version": "0.0.0",
+      "dependencies": {
+        "commander": "^15.0.0",
+      },
+      "devDependencies": {
+        "@types/node": "^26.5.1",
+      },
+    },
+    "packages/core": {
+      "name": "@ui-keeper/core",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "^4.6.4",
+      },
+    },
+  },
+  "packages": {
+    "@types/node": ["@types/node@26.5.1", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-CzNm2FezW4VR/LjG6yUdiEgLE/rAQ9Slj5gCu/C2VrdcW7I0ahNZ8DRbHT7zOZ6r3ONgd/bsQIeSaoDGrd1C6g=="],
+
+    "@ui-keeper/cli": ["@ui-keeper/cli@workspace:packages/cli"],
+
+    "@ui-keeper/core": ["@ui-keeper/core@workspace:packages/core"],
+
+    "commander": ["commander@15.0.0", "", {}, "sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg=="],
+
+    "undici-types": ["undici-types@8.9.0", "", {}, "sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg=="],
+
+    "zod": ["zod@4.6.4", "", {}, "sha512-AXSD6hvGdvRjajG/l1cC+d6IrhH+sjmPKtYeQdJIK8MFJl3LyClzS+o/YsVC+zQZPupAaeH5skwwm8YqYH7BqA=="],
+  }
+}

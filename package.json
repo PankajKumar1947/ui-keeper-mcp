@@ -1,0 +1,14 @@
+{
+  "name": "ui-keeper",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:cli": "bun run packages/cli/src/index.ts"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/node": "^26.5.1"
+  }
+}
