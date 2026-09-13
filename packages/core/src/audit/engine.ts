@@ -5,6 +5,7 @@ import type { AuditIssue, AuditReport, ProjectModel } from "../types";
 import { checkHardcodedColors } from "./rules/no-hardcoded-colors";
 import { checkArbitraryValues } from "./rules/no-arbitrary-values";
 import { checkDuplicateComponents } from "./rules/no-duplicate-components";
+import { checkRepeatedInlineJsx } from "./rules/no-repeated-inline-jsx";
 
 export interface AuditEngineOptions {
   targetPath?: string;
@@ -64,6 +65,9 @@ export function runAudit(options: AuditEngineOptions): AuditReport {
 
       // Run Rule 3: Duplicate Components
       issues.push(...checkDuplicateComponents(sourceFile, relPath, projectModel.componentCatalog));
+
+      // Run Rule 4: Repeated Inline JSX
+      issues.push(...checkRepeatedInlineJsx(sourceFile, relPath));
     } catch {
       // Continue on file parse errors
     }

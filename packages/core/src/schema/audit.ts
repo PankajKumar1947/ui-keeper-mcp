@@ -5,6 +5,7 @@ export const IssueSeveritySchema = z.enum(["error", "warning", "info"]);
 export const IssueCategorySchema = z.enum([
   "design-system-drift",
   "duplicate-component",
+  "repeated-inline-jsx",
   "responsive-layout",
   "accessibility",
   "arbitrary-value",

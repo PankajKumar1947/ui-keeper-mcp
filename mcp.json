@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ui-keeper": {
+      "command": "bun",
+      "args": [
+        "run",
+        "/Users/pankaj/Developer/projects/ui-keeper/packages/local-mcp/src/index.ts"
+      ]
+    }
+  }
+}
