@@ -44,3 +44,14 @@ export const ApplyUiFixInputSchema = z.object({
   rootDir: z.string().optional().describe("Project root directory"),
   targetPath: z.string().optional().describe("Optional file or directory to fix"),
 });
+
+export const AuditCodeInputSchema = z.object({
+  code: z.string().describe("JSX / TSX source code to audit"),
+  filePath: z.string().optional().describe("Optional relative file path e.g. components/Button.tsx"),
+  cssContent: z.string().optional().describe("Optional CSS variables or tokens from globals.css or token.css"),
+});
+
+export const ExtractTokensInputSchema = z.object({
+  cssContent: z.string().describe("Raw CSS content containing CSS variables or tokens (e.g. from token.css)"),
+});
+

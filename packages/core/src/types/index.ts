@@ -46,4 +46,7 @@ export type ScaffoldComponentInput = z.infer<typeof schemas.ScaffoldComponentInp
 export type FindComponentInput = z.infer<typeof schemas.FindComponentInputSchema>;
 export type FindDesignTokenInput = z.infer<typeof schemas.FindDesignTokenInputSchema>;
 export type ApplyUiFixInput = z.infer<typeof schemas.ApplyUiFixInputSchema>;
+export type AuditCodeInput = z.infer<typeof schemas.AuditCodeInputSchema>;
+export type ExtractTokensInput = z.infer<typeof schemas.ExtractTokensInputSchema>;
+
 

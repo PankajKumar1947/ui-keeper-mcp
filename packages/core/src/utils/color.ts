@@ -50,7 +50,7 @@ export function parseHex(hex: string): RGB | null {
 }
 
 export function parseRgbString(rgbStr: string): RGB | null {
-  const match = rgbStr.match(/rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+))?\)/i);
+  const match = rgbStr.trim().match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+))?\s*\)$/i);
   if (!match) return null;
   return {
     r: Math.min(255, Math.max(0, parseInt(match[1], 10))),
@@ -61,7 +61,7 @@ export function parseRgbString(rgbStr: string): RGB | null {
 }
 
 export function parseHslString(hslStr: string): HSL | null {
-  const match = hslStr.match(/hsla?\((\d+)[,\s]+([\d.]+)%?[,\s]+([\d.]+)%?(?:[,\s/]+([\d.]+))?\)/i);
+  const match = hslStr.trim().match(/^hsla?\(\s*(\d+)[,\s]+([\d.]+)%?[,\s]+([\d.]+)%?(?:[,\s/]+([\d.]+))?\s*\)$/i);
   if (!match) return null;
   return {
     h: parseInt(match[1], 10),
@@ -70,6 +70,7 @@ export function parseHslString(hslStr: string): HSL | null {
     a: match[4] !== undefined ? parseFloat(match[4]) : undefined,
   };
 }
+
 
 export function rgbToHex(rgb: RGB): string {
   const toHex = (n: number) => Math.round(n).toString(16).padStart(2, "0");

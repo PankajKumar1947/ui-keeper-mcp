@@ -48,6 +48,9 @@ export const AuditReportSchema = z.object({
   totalIssues: z.number(),
   errorsCount: z.number(),
   warningsCount: z.number(),
+  auditedFilesCount: z.number().default(0),
   issues: z.array(AuditIssueSchema),
   summary: z.string(),
+  error: z.string().optional(),
 });
+

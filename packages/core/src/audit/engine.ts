@@ -43,10 +43,46 @@ function findSourceFiles(dirOrFile: string): string[] {
 export function runAudit(options: AuditEngineOptions): AuditReport {
   const { projectModel } = options;
   const rootDir = projectModel.config.rootDir;
-  const target = options.targetPath ? path.resolve(options.targetPath) : rootDir;
-  const libInfo = detectInstalledLibraries(rootDir);
+  const target = options.targetPath
+    ? path.isAbsolute(options.targetPath)
+      ? options.targetPath
+      : path.join(rootDir, options.targetPath)
+    : rootDir;
 
+  const targetExists = existsSync(target);
+  if (!targetExists) {
+    const relDisplay = options.targetPath || ".";
+    return {
+      timestamp: new Date().toISOString(),
+      targetPath: relDisplay,
+      totalIssues: 0,
+      errorsCount: 0,
+      warningsCount: 0,
+      auditedFilesCount: 0,
+      issues: [],
+      summary: `Target path does not exist: '${relDisplay}'.`,
+      error: `Target path not found: '${relDisplay}'.`,
+    };
+  }
+
+  const libInfo = detectInstalledLibraries(rootDir);
   const files = findSourceFiles(target);
+
+  if (files.length === 0) {
+    const relDisplay = options.targetPath || ".";
+    return {
+      timestamp: new Date().toISOString(),
+      targetPath: relDisplay,
+      totalIssues: 0,
+      errorsCount: 0,
+      warningsCount: 0,
+      auditedFilesCount: 0,
+      issues: [],
+      summary: `No matching source files (.tsx, .jsx, .ts, .js) found in '${relDisplay}'.`,
+      error: `No source files found to audit in '${relDisplay}'.`,
+    };
+  }
+
   const issues: AuditIssue[] = [];
 
   for (const file of files) {
@@ -92,11 +128,96 @@ export function runAudit(options: AuditEngineOptions): AuditReport {
 
   return {
     timestamp: new Date().toISOString(),
-    targetPath: path.relative(rootDir, target) || ".",
+    targetPath: options.targetPath || (path.relative(rootDir, target) || "."),
     totalIssues: issues.length,
     errorsCount,
     warningsCount,
+    auditedFilesCount: files.length,
     issues,
     summary: `Found ${issues.length} issues (${errorsCount} errors, ${warningsCount} warnings) across ${files.length} audited files.`,
   };
 }
+
+export interface AuditCodeContentOptions {
+  code: string;
+  filePath?: string;
+  cssContent?: string;
+  designSystem?: import("../types").DesignSystem;
+}
+
+export function auditCodeContent(options: AuditCodeContentOptions): AuditReport {
+  const filePath = options.filePath || "Component.tsx";
+  const isTsx = filePath.endsWith(".tsx") || filePath.endsWith(".ts");
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    options.code,
+    ts.ScriptTarget.Latest,
+    true,
+    isTsx ? ts.ScriptKind.TSX : ts.ScriptKind.JSX
+  );
+
+  let designSystem = options.designSystem;
+  if (!designSystem) {
+    const { parseCssContent } = require("../extractor/css-variable-parser");
+    const {
+      DEFAULT_TAILWIND_COLORS,
+      DEFAULT_TAILWIND_SPACING,
+      DEFAULT_TAILWIND_RADIUS,
+      DEFAULT_TAILWIND_SHADOWS,
+      DEFAULT_TAILWIND_BREAKPOINTS,
+    } = require("../extractor/tailwind-parser");
+
+    const cssVars = options.cssContent
+      ? parseCssContent(options.cssContent)
+      : { colors: [], spacing: [], radius: [], shadows: [], typography: [] };
+
+    const colorsMap = new Map<string, any>();
+    for (const c of DEFAULT_TAILWIND_COLORS) colorsMap.set(c.name, c);
+    for (const c of cssVars.colors) colorsMap.set(c.name, c);
+
+    const spacingMap = new Map<string, any>();
+    for (const s of DEFAULT_TAILWIND_SPACING) spacingMap.set(s.name, s);
+    for (const s of cssVars.spacing) spacingMap.set(s.name, s);
+
+    const radiusMap = new Map<string, any>();
+    for (const r of DEFAULT_TAILWIND_RADIUS) radiusMap.set(r.name, r);
+    for (const r of cssVars.radius) radiusMap.set(r.name, r);
+
+    designSystem = {
+      version: "1.0.0",
+      framework: "react",
+      stylingEngine: "tailwind",
+      colors: Array.from(colorsMap.values()),
+      spacing: Array.from(spacingMap.values()),
+      typography: cssVars.typography,
+      radius: Array.from(radiusMap.values()),
+      shadows: Array.from(DEFAULT_TAILWIND_SHADOWS),
+      breakpoints: Array.from(DEFAULT_TAILWIND_BREAKPOINTS),
+    };
+  }
+
+  const issues: AuditIssue[] = [];
+  issues.push(...checkHardcodedColors(sourceFile, filePath, designSystem));
+  issues.push(...checkArbitraryValues(sourceFile, filePath, designSystem));
+  issues.push(...checkDuplicateComponents(sourceFile, filePath, { components: [], totalCount: 0, categories: {} }));
+  issues.push(...checkRepeatedInlineJsx(sourceFile, filePath));
+  issues.push(...checkConflictingClasses(sourceFile, filePath));
+  issues.push(...checkColorContrast(sourceFile, filePath, designSystem));
+  issues.push(...checkRebuildingLibraryComponents(sourceFile, filePath, { hasShadcn: false, hasRadix: false, installedUiComponents: [] }));
+
+  const errorsCount = issues.filter((i) => i.severity === "error").length;
+  const warningsCount = issues.filter((i) => i.severity === "warning").length;
+
+  return {
+    timestamp: new Date().toISOString(),
+    targetPath: filePath,
+    totalIssues: issues.length,
+    errorsCount,
+    warningsCount,
+    auditedFilesCount: 1,
+    issues,
+    summary: `Found ${issues.length} issues (${errorsCount} errors, ${warningsCount} warnings) in ${filePath}.`,
+  };
+}
+
+

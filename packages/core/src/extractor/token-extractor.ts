@@ -46,7 +46,9 @@ export function extractTokens(config: ProjectConfig): DesignSystem {
   for (const c of cssVars.colors) colorsMap.set(c.name, c);
   for (const s of cssVars.spacing) spacingMap.set(s.name, s);
   for (const r of cssVars.radius) radiusMap.set(r.name, r);
+  for (const sh of cssVars.shadows) shadowMap.set(sh.name, sh);
   for (const t of cssVars.typography) typographyMap.set(t.name, t);
+
 
   return {
     version: "1.0.0",

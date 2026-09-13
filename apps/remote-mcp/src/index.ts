@@ -1,11 +1,14 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { existsSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
   analyzeProject,
   auditProject,
+  auditCodeContent,
+  parseCssContent,
   fixProject,
   generateComponent,
   calculateHealthScore,
@@ -18,6 +21,8 @@ import {
   FindComponentInputSchema,
   FindDesignTokenInputSchema,
   ApplyUiFixInputSchema,
+  AuditCodeInputSchema,
+  ExtractTokensInputSchema,
 } from "@ui-keeper/core";
 
 export function createMcpServer() {
@@ -27,7 +32,45 @@ export function createMcpServer() {
     description: "Remote Streamable MCP server for UI Keeper",
   });
 
-  // Tool 1: inspect_design_system
+  // Tool 1: audit_code (Edge & Remote friendly)
+  server.registerTool(
+    "audit_code",
+    {
+      title: "Audit Code Content",
+      description:
+        "Audit raw TSX/JSX source code directly against design system rules (detect hardcoded colors, 4px grid drift, conflicting Tailwind classes, and WCAG contrast violations) without needing local filesystem access.",
+      inputSchema: AuditCodeInputSchema.shape,
+    },
+    async (input) => {
+      const report = auditCodeContent({
+        code: input.code,
+        filePath: input.filePath,
+        cssContent: input.cssContent,
+      });
+      return {
+        content: [{ type: "text", text: JSON.stringify(report, null, 2) }],
+      };
+    }
+  );
+
+  // Tool 2: extract_tokens_from_css (Edge & Remote friendly)
+  server.registerTool(
+    "extract_tokens_from_css",
+    {
+      title: "Extract Tokens from CSS",
+      description:
+        "Extract and parse design tokens (colors, spacing, radius, shadows, typography) directly from raw CSS string content (e.g. from token.css or globals.css).",
+      inputSchema: ExtractTokensInputSchema.shape,
+    },
+    async (input) => {
+      const parsed = parseCssContent(input.cssContent);
+      return {
+        content: [{ type: "text", text: JSON.stringify(parsed, null, 2) }],
+      };
+    }
+  );
+
+  // Tool 3: inspect_design_system
   server.registerTool(
     "inspect_design_system",
     {
@@ -37,8 +80,24 @@ export function createMcpServer() {
       inputSchema: InspectDesignSystemInputSchema.shape,
     },
     async (input) => {
-
       const rootDir = input.rootDir || process.cwd();
+      if (!existsSync(rootDir)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Filesystem path not found on remote server",
+                  message: `The remote MCP server cannot access local path '${rootDir}'. For full local project scanning, use the local Stdio MCP (@ui-keeper/local-mcp) or pass CSS content to 'extract_tokens_from_css'.`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
       const model = analyzeProject({ rootDir });
       return {
         content: [{ type: "text", text: JSON.stringify(model.designSystem, null, 2) }],
@@ -46,7 +105,7 @@ export function createMcpServer() {
     }
   );
 
-  // Tool 2: inspect_ui
+  // Tool 4: inspect_ui
   server.registerTool(
     "inspect_ui",
     {
@@ -57,6 +116,23 @@ export function createMcpServer() {
     },
     async (input) => {
       const rootDir = input.rootDir || process.cwd();
+      if (!existsSync(rootDir)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Filesystem path not found on remote server",
+                  message: `The remote MCP server cannot access local path '${rootDir}'. For full local project scanning, use the local Stdio MCP (@ui-keeper/local-mcp).`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
       const model = analyzeProject({ rootDir });
       return {
         content: [{ type: "text", text: JSON.stringify(model, null, 2) }],
@@ -64,7 +140,7 @@ export function createMcpServer() {
     }
   );
 
-  // Tool 3: audit_ui
+  // Tool 5: audit_ui
   server.registerTool(
     "audit_ui",
     {
@@ -75,6 +151,23 @@ export function createMcpServer() {
     },
     async (input) => {
       const rootDir = input.rootDir || process.cwd();
+      if (!existsSync(rootDir)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Filesystem path not found on remote server",
+                  message: `The remote MCP server cannot access local path '${rootDir}'. For auditing local files, use the local Stdio MCP (@ui-keeper/local-mcp) or pass code to 'audit_code'.`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
       const report = auditProject({
         rootDir,
         targetPath: input.targetPath,
@@ -85,7 +178,7 @@ export function createMcpServer() {
     }
   );
 
-  // Tool 4: get_ui_health_score
+  // Tool 6: get_ui_health_score
   server.registerTool(
     "get_ui_health_score",
     {
@@ -96,6 +189,23 @@ export function createMcpServer() {
     },
     async (input) => {
       const rootDir = input.rootDir || process.cwd();
+      if (!existsSync(rootDir)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Filesystem path not found on remote server",
+                  message: `The remote MCP server cannot access local path '${rootDir}'. For calculating score on local projects, use the local Stdio MCP (@ui-keeper/local-mcp).`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
       const health = calculateHealthScore({
         rootDir,
         targetPath: input.targetPath,
@@ -105,6 +215,7 @@ export function createMcpServer() {
       };
     }
   );
+
 
   // Tool 5: scaffold_component
   server.registerTool(

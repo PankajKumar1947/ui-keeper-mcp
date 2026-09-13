@@ -1,12 +1,13 @@
 import { readFileSync, existsSync } from "node:fs";
 import * as path from "node:path";
-import type { ColorToken, SpacingToken, RadiusToken, TypographyToken } from "../types";
+import type { ColorToken, SpacingToken, RadiusToken, ShadowToken, TypographyToken } from "../types";
 import { parseHex, parseRgbString, parseHslString, rgbToHex, hslToRgb } from "../utils/color";
 
 export interface ParsedCssVariables {
   colors: ColorToken[];
   spacing: SpacingToken[];
   radius: RadiusToken[];
+  shadows: ShadowToken[];
   typography: TypographyToken[];
 }
 
@@ -14,6 +15,7 @@ export function parseCssContent(cssContent: string): ParsedCssVariables {
   const colors: ColorToken[] = [];
   const spacing: SpacingToken[] = [];
   const radius: RadiusToken[] = [];
+  const shadows: ShadowToken[] = [];
   const typography: TypographyToken[] = [];
 
   // Match all CSS variable definitions: --name: value;
@@ -25,7 +27,7 @@ export function parseCssContent(cssContent: string): ParsedCssVariables {
     const rawVal = match[2].trim();
     const fullVar = `--${varName}`;
 
-    // 1. Check if color
+    // 1. Check exact color format (hex, rgb(), hsl())
     const hex = parseHex(rawVal);
     const rgb = parseRgbString(rawVal);
     const hsl = parseHslString(rawVal);
@@ -57,18 +59,19 @@ export function parseCssContent(cssContent: string): ParsedCssVariables {
         hsl: rawVal,
       });
       continue;
-    } else if (/^(hsl|rgb|oklch)\(/.test(rawVal) || /color/i.test(varName) || /bg|foreground|primary|secondary|accent|muted|destructive|border/i.test(varName)) {
-      // It's likely a color (e.g. Tailwind / shadcn format `222.2 84% 4.9%` or `oklch(...)`)
-      colors.push({
+    }
+
+    // 2. Check if shadow
+    if (/shadow/i.test(varName)) {
+      shadows.push({
         name: varName,
         value: rawVal,
-        cssVar: fullVar,
       });
       continue;
     }
 
-    // 2. Check if radius
-    if (/radius/i.test(varName) || /rounded/i.test(varName)) {
+    // 3. Check if radius
+    if (/radius|rounded/i.test(varName)) {
       let pxVal: number | undefined;
       if (rawVal.endsWith("px")) {
         pxVal = parseFloat(rawVal);
@@ -83,8 +86,8 @@ export function parseCssContent(cssContent: string): ParsedCssVariables {
       continue;
     }
 
-    // 3. Check if spacing
-    if (/spacing|gap|padding|margin|space/i.test(varName)) {
+    // 4. Check if spacing
+    if (/spacing|gap|padding|margin|space|size/i.test(varName) && (rawVal.endsWith("px") || rawVal.endsWith("rem") || /^\d+(\.\d+)?(px|rem)$/.test(rawVal))) {
       let pxVal = 0;
       if (rawVal.endsWith("px")) {
         pxVal = parseFloat(rawVal);
@@ -99,16 +102,31 @@ export function parseCssContent(cssContent: string): ParsedCssVariables {
       continue;
     }
 
-    // 4. Check if typography
+    // 5. Check if typography
     if (/font/i.test(varName)) {
       typography.push({
         name: varName,
         fontFamily: rawVal,
       });
+      continue;
     }
+
+    // 6. Check if generic color variable
+    if (
+      /^(hsl|rgb|oklch)\(/.test(rawVal) ||
+      /color|bg|background|foreground|primary|secondary|accent|muted|destructive|border|surface|text/i.test(varName)
+    ) {
+      colors.push({
+        name: varName,
+        value: rawVal,
+        cssVar: fullVar,
+      });
+      continue;
+    }
+
   }
 
-  return { colors, spacing, radius, typography };
+  return { colors, spacing, radius, shadows, typography };
 }
 
 export function parseCssFiles(rootDir: string, cssFilePaths: string[]): ParsedCssVariables {
@@ -116,6 +134,7 @@ export function parseCssFiles(rootDir: string, cssFilePaths: string[]): ParsedCs
     colors: [],
     spacing: [],
     radius: [],
+    shadows: [],
     typography: [],
   };
 
@@ -128,6 +147,7 @@ export function parseCssFiles(rootDir: string, cssFilePaths: string[]): ParsedCs
       result.colors.push(...parsed.colors);
       result.spacing.push(...parsed.spacing);
       result.radius.push(...parsed.radius);
+      result.shadows.push(...parsed.shadows);
       result.typography.push(...parsed.typography);
     } catch {
       // Continue parsing other files on read errors
@@ -136,3 +156,4 @@ export function parseCssFiles(rootDir: string, cssFilePaths: string[]): ParsedCs
 
   return result;
 }
+

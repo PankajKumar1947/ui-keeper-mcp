@@ -13,6 +13,25 @@ export function calculateHealthScore(options: ScoreOptions = {}): HealthScore {
   const projectModel = analyzeProject({ rootDir });
   const auditReport = runAudit({ targetPath: options.targetPath, projectModel });
 
+  if (auditReport.auditedFilesCount === 0) {
+    const errorMsg = auditReport.error || `No source files found to audit at '${options.targetPath || rootDir}'.`;
+    return {
+      overallScore: 0,
+      grade: "F",
+      tokenAdoptionScore: 0,
+      componentReuseScore: 0,
+      cleanlinessScore: 0,
+      totalIssues: 0,
+      errorsCount: 0,
+      warningsCount: 0,
+      summary: `Cannot calculate UI health score: ${errorMsg}`,
+      recommendations: [
+        `Ensure target directory '${options.targetPath || rootDir}' exists and contains valid .tsx/.jsx files.`,
+        "If using a remote MCP server, note that it cannot access local filesystem paths.",
+      ],
+    };
+  }
+
   const totalIssues = auditReport.totalIssues;
   const errors = auditReport.errorsCount;
   const warnings = auditReport.warningsCount;
@@ -66,7 +85,8 @@ export function calculateHealthScore(options: ScoreOptions = {}): HealthScore {
     totalIssues,
     errorsCount: errors,
     warningsCount: warnings,
-    summary: `Codebase UI Quality Grade: ${grade} (${overallScore}/100) — ${totalIssues} total issues detected.`,
+    summary: `Codebase UI Quality Grade: ${grade} (${overallScore}/100) — ${totalIssues} total issues detected across ${auditReport.auditedFilesCount} files.`,
     recommendations,
   };
 }
+

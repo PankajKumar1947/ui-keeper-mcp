@@ -201,23 +201,70 @@ function findFilesRecursively(dir: string, extensions: string[]): string[] {
 }
 
 export function scanComponents(rootDir: string, componentsDir?: string): ComponentCatalog {
-  const searchDir = componentsDir ? path.join(rootDir, componentsDir) : path.join(rootDir, "src");
-  const baseDir = existsSync(searchDir) ? searchDir : rootDir;
+  let searchDirs: string[] = [];
 
-  const componentFiles = findFilesRecursively(baseDir, [".tsx", ".jsx"]);
+  if (componentsDir && existsSync(path.join(rootDir, componentsDir))) {
+    searchDirs.push(path.join(rootDir, componentsDir));
+  } else {
+    const candidates = [
+      "components",
+      "src/components",
+      "app/components",
+      "src/app/components",
+      "ui",
+      "src/ui",
+      "app/ui",
+      "src/app/ui",
+      "src",
+    ];
+    for (const c of candidates) {
+      const full = path.join(rootDir, c);
+      if (existsSync(full) && !searchDirs.includes(full)) {
+        searchDirs.push(full);
+      }
+    }
+    if (searchDirs.length === 0 && existsSync(rootDir)) {
+      searchDirs.push(rootDir);
+    }
+  }
+
+  const seenFiles = new Set<string>();
+  const componentFiles: string[] = [];
+
+  for (const dir of searchDirs) {
+    const files = findFilesRecursively(dir, [".tsx", ".jsx", ".ts", ".js"]);
+    for (const f of files) {
+      if (!seenFiles.has(f)) {
+        seenFiles.add(f);
+        componentFiles.push(f);
+      }
+    }
+  }
+
   const allComponents: ComponentEntry[] = [];
   const categoryCounts: Record<string, number> = {};
 
   for (const file of componentFiles) {
     const relPath = path.relative(rootDir, file);
     // Ignore route page files in Next.js /app or /pages when scanning component libraries
-    if (/(^|\/)page\.(tsx|jsx)$/.test(relPath) || /(^|\/)layout\.(tsx|jsx)$/.test(relPath)) {
+    if (
+      /(^|\/)page\.(tsx|jsx|ts|js)$/.test(relPath) ||
+      /(^|\/)layout\.(tsx|jsx|ts|js)$/.test(relPath) ||
+      /(^|\/)loading\.(tsx|jsx|ts|js)$/.test(relPath) ||
+      /(^|\/)error\.(tsx|jsx|ts|js)$/.test(relPath) ||
+      /(^|\/)not-found\.(tsx|jsx|ts|js)$/.test(relPath) ||
+      /(^|\/)route\.(tsx|jsx|ts|js)$/.test(relPath)
+    ) {
       continue;
     }
-    const components = parseComponentFile(file, relPath);
-    for (const comp of components) {
-      allComponents.push(comp);
-      categoryCounts[comp.category] = (categoryCounts[comp.category] || 0) + 1;
+    try {
+      const components = parseComponentFile(file, relPath);
+      for (const comp of components) {
+        allComponents.push(comp);
+        categoryCounts[comp.category] = (categoryCounts[comp.category] || 0) + 1;
+      }
+    } catch {
+      // Continue parsing other component files
     }
   }
 
@@ -227,3 +274,4 @@ export function scanComponents(rootDir: string, componentsDir?: string): Compone
     categories: categoryCounts,
   };
 }
+

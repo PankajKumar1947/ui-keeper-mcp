@@ -122,4 +122,31 @@ describe("Static UI Audit Engine", () => {
     expect(negIssue).toBeDefined();
     expect(negIssue?.suggestedFix?.replacementText).toBe("-m-4");
   });
+
+  test("reports error when target path does not exist or has 0 files", () => {
+    const report = auditProject({ rootDir: tempDir, targetPath: "non-existent-dir" });
+    expect(report.auditedFilesCount).toBe(0);
+    expect(report.error).toBeDefined();
+    expect(report.error).toContain("Target path not found");
+  });
+
+  test("audits raw code content strings directly (edge/remote friendly)", () => {
+    const { auditCodeContent } = require("../src/audit/engine");
+    const report = auditCodeContent({
+      code: `
+        export function Header() {
+          return <div className="bg-[#00953B] p-[17px] flex block">Hello</div>;
+        }
+      `,
+      filePath: "Header.tsx",
+      cssContent: ":root { --primary-500: #00953B; }",
+    });
+
+    expect(report.auditedFilesCount).toBe(1);
+    expect(report.totalIssues).toBeGreaterThan(0);
+    const spacingIssue = report.issues.find((i) => i.ruleId === "no-arbitrary-spacing");
+    expect(spacingIssue).toBeDefined();
+    expect(spacingIssue?.snippet).toContain("p-[17px]");
+  });
 });
+

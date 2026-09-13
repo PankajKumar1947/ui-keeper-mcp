@@ -119,4 +119,50 @@ describe("Token Extractor", () => {
     expect(designSystem.spacing.length).toBeGreaterThan(10);
     expect(designSystem.radius.length).toBeGreaterThan(3);
   });
+
+  test("dynamically discovers app/token.css and detects Tailwind v4 @import", () => {
+    writeFileSync(
+      path.join(tempDir, "package.json"),
+      JSON.stringify({
+        name: "test-v4-app",
+        dependencies: { next: "16.3.4", "@tailwindcss/postcss": "^4.0.0" },
+      })
+    );
+
+    mkdirSync(path.join(tempDir, "app"), { recursive: true });
+    writeFileSync(
+      path.join(tempDir, "app", "globals.css"),
+      `@import "tailwindcss";\n@theme { --font-sans: Inter; }`
+    );
+    writeFileSync(
+      path.join(tempDir, "app", "token.css"),
+      `
+      :root {
+        --primary-500: #00953B;
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        --radius-lg: 8px;
+        --font-heading: 'Plus Jakarta Sans', sans-serif;
+      }
+      `
+    );
+
+    const config = detectProject(tempDir);
+    expect(config.framework).toBe("nextjs");
+    expect(config.stylingEngine).toBe("tailwind");
+    expect(config.globalCssPaths).toContain("app/globals.css");
+    expect(config.globalCssPaths).toContain("app/token.css");
+
+    const tokens = extractTokens(config);
+    const primaryToken = tokens.colors.find((c) => c.name === "primary-500");
+    expect(primaryToken).toBeDefined();
+    expect(primaryToken?.hex).toBe("#00953B");
+
+    const shadowToken = tokens.shadows.find((s) => s.name === "shadow-md");
+    expect(shadowToken).toBeDefined();
+
+    const radiusToken = tokens.radius.find((r) => r.name === "radius-lg");
+    expect(radiusToken).toBeDefined();
+    expect(radiusToken?.pxValue).toBe(8);
+  });
 });
+
