@@ -1,10 +1,10 @@
-# 🌐 @ui-keeper/remote-mcp
+# @ui-keeper/remote-mcp
 
 Edge-ready Remote Model Context Protocol (MCP) Server built with **[Hono](https://hono.dev)** and `@modelcontextprotocol/sdk` streamable HTTP transport, optimized for **Cloudflare Workers** and Bun.
 
 ---
 
-## ⚡ Deployment to Cloudflare Workers
+## Deployment to Cloudflare Workers
 
 Deploy globally to Cloudflare Workers in seconds using Wrangler:
 
@@ -19,7 +19,7 @@ bun run deploy
 
 ---
 
-## 🚀 Running Locally
+## Running Locally
 
 ```bash
 # Local edge simulation via Wrangler
@@ -31,7 +31,7 @@ bun --cwd apps/remote-mcp run dev
 
 ---
 
-## 📡 Endpoints
+## Endpoints
 
 - `ALL /mcp` — WebStandard Streamable HTTP JSON-RPC MCP endpoint for AI coding agents.
 - `GET /health` — Health check endpoint for uptime monitors.
@@ -39,7 +39,7 @@ bun --cwd apps/remote-mcp run dev
 
 ---
 
-## 🤖 Connecting AI Clients to Remote MCP
+## Connecting AI Clients to Remote MCP
  
 ### Live Production Endpoint
 `https://ui-keeper-remote-mcp.veerukry79.workers.dev/mcp`
@@ -54,5 +54,3 @@ In `mcp.json` / Cursor / OpenCode / Claude Code / Windsurf:
   }
 }
 ```
-
-
